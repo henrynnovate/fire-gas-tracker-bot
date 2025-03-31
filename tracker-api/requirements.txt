@@ -4,3 +4,4 @@ openpyxl
 uvicorn
 typing-extensions
 python-multipart
+xlrd>=2.0.1
