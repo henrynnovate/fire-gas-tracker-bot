@@ -1,0 +1,146 @@
+/* Latest Modal */
+.latestAdd {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Modal Content */
+.modalContent {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Upload Sections */
+.uploadSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: 2px dashed #007bff;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+}
+
+.uploadSection:hover {
+    background: rgba(0, 123, 255, 0.1);
+}
+
+.uploadLabel {
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.hiddenInput {
+    display: none;
+}
+
+/* File List */
+.fileList {
+    max-height: 250px;
+    overflow-y: auto;
+    width: 100%;
+}
+
+/* Individual File Items */
+.trackerFile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease-in-out;
+    text-align: center;
+    position: relative;
+}
+
+.fileInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* File Name Styling */
+.fileName {
+    font-size: 14px;
+    color: #333;
+    word-break: break-word;
+    max-width: 160px;
+    text-align: center;
+}
+
+/* Remove Button */
+.removeButton {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #ff4d4d;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.removeButton:hover {
+    background: #d40000;
+}
+
+/* Button Container */
+.buttonContainer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+/* Upload & Cancel Buttons */
+.uploadButton, .cancelButton {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.uploadButton {
+    background: #007bff;
+    color: white;
+    margin-right: 10px;
+}
+
+.uploadButton:hover {
+    background: #0056b3;
+}
+
+.cancelButton {
+    background: #ccc;
+}
+
+.cancelButton:hover {
+    background: #999;
+}

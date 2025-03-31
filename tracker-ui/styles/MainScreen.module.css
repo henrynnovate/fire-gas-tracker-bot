@@ -1,0 +1,90 @@
+/* Main Container */
+.container {
+  text-align: center;
+  padding: 20px;
+}
+
+/* Header */
+.header {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 20px;
+}
+
+/* Main Sections */
+.mainScreen {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 20px;
+  max-width: 800px;
+  margin: auto;
+}
+
+/* Menu Sections */
+.menu, .menu1 {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 320px;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+}
+
+.menu:hover, .menu1:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Menu Header */
+.menuHeader {
+  font-size: 18px;
+  font-weight: 600;
+  padding: 12px;
+  border-bottom: 2px solid var(--border-color);
+  text-align: center;
+  transition: color 0.2s ease-in-out;
+  color: var(--primary);
+}
+
+.menuHeader:hover {
+  color: var(--highlight);
+  text-decoration: underline;
+}
+
+/* Separator */
+.menuSeparator {
+  margin: 8px 0;
+}
+
+.rule {
+  height: 2px;
+  background: var(--border-color);
+}
+
+/* Instructions Section */
+.menuSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  text-align: left;
+}
+
+/* Instructions List */
+.instructions {
+  font-size: 14px;
+  color: #555;
+  padding: 10px;
+  list-style-type: disc;
+  margin-left: 20px;
+  line-height: 1.6;
+}
+
+/* Add subtle hover effect for better UI feedback */
+.instructions:hover {
+  color: var(--dark);
+  transition: color 0.2s ease-in-out;
+}
