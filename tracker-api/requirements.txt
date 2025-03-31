@@ -3,3 +3,4 @@ pandas
 openpyxl
 uvicorn
 typing-extensions
+python-multipart
