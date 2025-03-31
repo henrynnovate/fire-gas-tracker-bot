@@ -94,12 +94,11 @@ def update_tracker(tracker_path, extracted_dfs, is_latest):
         updated_rows = set()
         last_tag_row = sheet.max_row
 
-        # For backlog processing, set all YES/NO columns to "NO" for existing tags
-        if not is_latest:
-            logging.info("Setting all YES/NO columns to NO for backlog processing...")
-            for i in range(12, sheet.max_row + 1):  # Start from row 12
-                for col in CONFIG["new_comment_columns"].values():
-                    sheet.cell(row=i, column=col).value = "NO"
+        # Step 1: Reset all YES/NO columns to "NO" before updating
+        logging.info("Resetting all YES/NO columns to NO before updating...")
+        for i in range(12, sheet.max_row + 1):  # Start from row 12
+            for col in CONFIG["new_comment_columns"].values():
+                sheet.cell(row=i, column=col).value = "NO"  # ✅ Ensures a clean reset
 
         for extracted_df, formatted_date in extracted_dfs:
             parsed_date = datetime.strptime(formatted_date, "%d/%m/%Y")
@@ -122,7 +121,7 @@ def update_tracker(tracker_path, extracted_dfs, is_latest):
             if not day_column:
                 raise HTTPException(status_code=400, detail=f"Day {day} not found in {month}. Check tracker format.")
 
-            # Process extracted rows
+            # Step 2: Process extracted rows
             for _, row in extracted_df.iterrows():
                 tag = row["TAG"]
                 location = row["DESCRIPTION"]
@@ -140,10 +139,8 @@ def update_tracker(tracker_path, extracted_dfs, is_latest):
                 formatted_comment = f"{formatted_date} {new_comment}"
 
                 # Check if tag already exists
-                tag_row = None
                 tag_lookup = {sheet.cell(row=i, column=2).value: i for i in range(12, sheet.max_row + 1)}
                 tag_row = tag_lookup.get(tag, None)
-
 
                 if tag_row:
                     # Update existing tag row
@@ -152,13 +149,12 @@ def update_tracker(tracker_path, extracted_dfs, is_latest):
                     existing_comment = sheet.cell(row=tag_row, column=comment_col_index).value or ""
                     sheet.cell(row=tag_row, column=comment_col_index).value = f"{existing_comment}\n{formatted_comment}".strip()
 
-                    # For latest, update the YES column; for backlog, YES/NO stays "NO"
+                    # Step 3: Assign "YES" after resetting
                     if is_latest:
                         col_number = CONFIG["new_comment_columns"].get(new_comment)
                         if col_number:
-                            prev_value = sheet.cell(row=tag_row, column=col_number).value
                             sheet.cell(row=tag_row, column=col_number).value = "YES"
-                            logging.info(f"Updated {col_number} for row {tag_row}: {prev_value} → YES")
+                            
                 else:
                     # Append new row for new tags
                     last_tag_row += 1
@@ -167,17 +163,15 @@ def update_tracker(tracker_path, extracted_dfs, is_latest):
                     sheet.cell(row=last_tag_row, column=day_column).value = act_unack
                     sheet.cell(row=last_tag_row, column=sheet.max_column - 2).value = formatted_comment
 
-                    # For backlog, set all YES/NO columns to "NO"
+                    # Step 4: Set all YES/NO columns to "NO" for new tags
                     for col in CONFIG["new_comment_columns"].values():
                         sheet.cell(row=last_tag_row, column=col).value = "NO"
-                    logging.info(f"New row added at {last_tag_row}, YES/NO columns set to NO.")
 
-                    # For latest, mark YES for new tags
+                    # Step 5: Assign "YES" for new tags if required
                     if is_latest:
                         col_number = CONFIG["new_comment_columns"].get(new_comment)
                         if col_number:
                             sheet.cell(row=last_tag_row, column=col_number).value = "YES"
-                            logging.info(f"Updated {col_number} for new row {last_tag_row}: YES")
 
         temp_output_path = os.path.join(TEMP_DIR, "updated_tracker.xlsx")
         workbook.save(temp_output_path)
