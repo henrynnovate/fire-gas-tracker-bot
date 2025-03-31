@@ -66,9 +66,13 @@ const BacklogAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error: any) {
-      console.error(error);
-      setError(error.message || "Something went wrong");
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(error);
+        setError(error.message);
+      } else {
+        setError("Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
