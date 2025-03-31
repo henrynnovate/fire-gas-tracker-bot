@@ -72,7 +72,8 @@ def load_and_filter_data(file_path, target_sheet):
         if target_sheet not in excel_data.sheet_names:
             logging.error(f"Sheet '{target_sheet}' not found in '{file_path}'")
             return None
-        data = pd.read_excel(file_path, sheet_name=target_sheet, engine="openpyxl")
+        engine = "xlrd" if file_path.endswith(".xls") else "openpyxl"
+        data = pd.read_excel(file_path, sheet_name=target_sheet, engine=engine)
         for col in CONFIG["columns_to_extract"]:
             if col not in data.columns:
                 logging.error(f"Column '{col}' not found in the data from '{file_path}'")
