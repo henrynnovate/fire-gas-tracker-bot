@@ -24,7 +24,8 @@ CONFIG = {
         "January": ("EL", "FP"),
         "February": ("FQ", "GR"),
         "March": ("GS", "HW"),
-        "April": ("WX", "JA"),
+        "April": ("HX", "JA"),
+        "May": ("JB", "KF")
     },
     "new_comment_columns": {
         "INVALIDITY": 5,
