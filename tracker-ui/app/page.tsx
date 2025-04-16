@@ -69,7 +69,36 @@ const MainScreen: FunctionComponent = () => {
             <BacklogAdd onClose={closeBacklogAdd} />
           </PortalPopup>
         )}
+
+        {/* Demo Video Link Section */}
+        <div className={styles.videoLinkSection}>
+          <h2 className={styles.videoHeader}>Watch Demo</h2>
+          <a
+            href="https://youtu.be/IGVbWs1EQzM"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.videoThumbnailLink}
+          >
+            <img
+              src="https://img.youtube.com/vi/IGVbWs1EQzM/hqdefault.jpg"
+              alt="Watch demo video on YouTube"
+              className={styles.videoThumbnail}
+            />
+          </a>
+        </div>
+        
+        {/* Floating Contact Button */}
+        <a
+          href="mailto:henrynnovate@gmail.com"
+          className={styles.floatingContactButton}
+          title="Contact Me"
+        >
+          💬
+        </a>
+
       </div>
+
+      
     </>
   );
 };
