@@ -24,7 +24,8 @@ CONFIG = {
         "January": ("EL", "FP"),
         "February": ("FQ", "GR"),
         "March": ("GS", "HW"),
-        "April": ("WX", "JA"),
+        "April": ("HX", "JA"),
+        "May": ("JB", "KF")
     },
     "new_comment_columns": {
         "INVALIDITY": 5,
@@ -34,7 +35,7 @@ CONFIG = {
         "BEAM": 8,
         "OTHERS": 9,
     },
-    "filter_keywords": ["GDB", "NFD", "NSD", "GDIR"],
+    "filter_keywords": ["GDB", "NFD", "NSD", "GDIR", "NMAC"],
     "columns_to_extract": ["TAG", "DESCRIPTION", "ALARM DESC2", "ACT/UNACK"],
 }
 
