@@ -154,3 +154,24 @@
 .cancelButton:hover {
     background: #999;
 }
+
+.errorBox {
+    background-color: #ffe5e5;
+    color: #b00020;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .dismissButton {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #b00020;
+  }
+  

@@ -69,11 +69,11 @@ def extract_date_and_sheet(file_path):
 
 def load_and_filter_data(file_path, target_sheet):
     try:
-        excel_data = pd.ExcelFile(file_path)
+        engine = "xlrd" if file_path.endswith(".xls") else "openpyxl"
+        excel_data = pd.ExcelFile(file_path, engine=engine)
         if target_sheet not in excel_data.sheet_names:
             logging.error(f"Sheet '{target_sheet}' not found in '{file_path}'")
             return None
-        engine = "xlrd" if file_path.endswith(".xls") else "openpyxl"
         data = pd.read_excel(file_path, sheet_name=target_sheet, engine=engine)
         for col in CONFIG["columns_to_extract"]:
             if col not in data.columns:

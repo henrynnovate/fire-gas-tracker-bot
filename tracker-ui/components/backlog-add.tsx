@@ -30,9 +30,22 @@ const BacklogAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const getFileIcon = (fileName: string) => {
     if (fileName.endsWith(".xls") || fileName.endsWith(".xlsx")) {
-      return "/icons/icon-excel.png"; // Example file icon
+      return "/icons/icon-excel.png";
     }
     return "/icons/file-icon.png";
+  };
+
+  const getFriendlyErrorMessage = (status: number): string => {
+    switch (status) {
+      case 400:
+        return "Invalid request. Please check your input files.";
+      case 404:
+        return "Processing service not found. Please try again later.";
+      case 500:
+        return "Server error. Try again in a few minutes.";
+      default:
+        return "An unexpected error occurred. Please try again.";
+    }
   };
 
   const handleProcess = async () => {
@@ -42,11 +55,11 @@ const BacklogAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
 
     setLoading(true);
-    setError(null); // Clear previous errors
+    setError(null);
     const formData = new FormData();
 
-    files.forEach((file) => formData.append("input_files", file)); // Match FastAPI input name
-    formData.append("tracker_file", trackerFile); // Match FastAPI input name
+    files.forEach((file) => formData.append("input_files", file));
+    formData.append("tracker_file", trackerFile);
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/process_backlog`, {
@@ -55,7 +68,8 @@ const BacklogAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.status} - ${response.statusText}`);
+        const friendlyMessage = getFriendlyErrorMessage(response.status);
+        throw new Error(friendlyMessage);
       }
 
       const blob = await response.blob();
@@ -68,7 +82,7 @@ const BacklogAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       link.remove();
     } catch (error) {
       if (error instanceof Error) {
-        console.error(error);
+        console.error("Processing error:", error);
         setError(error.message);
       } else {
         setError("Something went wrong");
@@ -83,10 +97,15 @@ const BacklogAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       <div className={styles.modalContent}>
         <h2>Upload Backlog Files</h2>
 
-        {/* Display Error Message */}
-        {error && <p className={styles.error}>{error}</p>}
+        {/* Error Message */}
+        {error && (
+          <div className={styles.errorBox}>
+            <p>{error}</p>
+            <button onClick={() => setError(null)} className={styles.dismissButton}>×</button>
+          </div>
+        )}
 
-        {/* Multiple Input Files Section */}
+        {/* Input Files */}
         <div className={styles.uploadSection}>
           <label className={styles.uploadLabel}>
             Select Input Files
@@ -94,7 +113,7 @@ const BacklogAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </label>
         </div>
 
-        {/* Display Selected Files */}
+        {/* Selected Input Files List */}
         <div className={styles.fileList}>
           <h3>Selected Files:</h3>
           <ul className={styles.fileGrid}>
@@ -110,7 +129,7 @@ const BacklogAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </ul>
         </div>
 
-        {/* Tracker File Section */}
+        {/* Tracker File Upload */}
         <div className={styles.uploadSection}>
           <label className={styles.uploadLabel}>
             Select Tracker File
@@ -129,7 +148,7 @@ const BacklogAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
         )}
 
-        {/* Action Buttons */}
+        {/* Buttons */}
         <div className={styles.buttonContainer}>
           <button 
             className={styles.uploadButton} 

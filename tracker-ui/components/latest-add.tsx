@@ -20,19 +20,27 @@ const LatestAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
   };
 
-  const removeInputFile = () => {
-    setInputFile(null);
-  };
-
-  const removeTrackerFile = () => {
-    setTrackerFile(null);
-  };
+  const removeInputFile = () => setInputFile(null);
+  const removeTrackerFile = () => setTrackerFile(null);
 
   const getFileIcon = (fileName: string) => {
     if (fileName.endsWith(".xls") || fileName.endsWith(".xlsx")) {
-      return "/icons/icon-excel.png"; // Example file icon
+      return "/icons/icon-excel.png";
     }
     return "/icons/file-icon.png";
+  };
+
+  const getFriendlyErrorMessage = (status: number): string => {
+    switch (status) {
+      case 400:
+        return "Invalid request. Please check your input files.";
+      case 404:
+        return "Processing service not found. Please try again later.";
+      case 500:
+        return "Server error. Try again in a few minutes.";
+      default:
+        return "An unexpected error occurred. Please try again.";
+    }
   };
 
   const handleProcess = async () => {
@@ -42,9 +50,8 @@ const LatestAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
 
     setLoading(true);
-    setError(null); // Clear previous errors
+    setError(null);
     const formData = new FormData();
-
     formData.append("input_file", inputFile);
     formData.append("tracker_file", trackerFile);
 
@@ -55,7 +62,8 @@ const LatestAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.status} - ${response.statusText}`);
+        const friendlyMessage = getFriendlyErrorMessage(response.status);
+        throw new Error(friendlyMessage);
       }
 
       const blob = await response.blob();
@@ -83,10 +91,15 @@ const LatestAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       <div className={styles.modalContent}>
         <h2>Upload Latest Files</h2>
 
-        {/* Display Error Message */}
-        {error && <p className={styles.error}>{error}</p>}
+        {/* Error Message */}
+        {error && (
+          <div className={styles.errorBox}>
+            <p>{error}</p>
+            <button onClick={() => setError(null)} className={styles.dismissButton}>×</button>
+          </div>
+        )}
 
-        {/* Input File Section */}
+        {/* Input File Upload */}
         <div className={styles.uploadSection}>
           <label className={styles.uploadLabel}>
             Select Input File
@@ -105,7 +118,7 @@ const LatestAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
         )}
 
-        {/* Tracker File Section */}
+        {/* Tracker File Upload */}
         <div className={styles.uploadSection}>
           <label className={styles.uploadLabel}>
             Select Tracker File
@@ -126,9 +139,9 @@ const LatestAdd: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
         {/* Action Buttons */}
         <div className={styles.buttonContainer}>
-          <button 
-            className={styles.uploadButton} 
-            onClick={handleProcess} 
+          <button
+            className={styles.uploadButton}
+            onClick={handleProcess}
             disabled={loading || !inputFile || !trackerFile}
           >
             {loading ? "Processing..." : "Process"}
