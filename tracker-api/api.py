@@ -11,8 +11,6 @@ from fastapi.responses import FileResponse
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 
-
-
 # Logging Configuration
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
@@ -42,7 +40,6 @@ CONFIG = {
 # FastAPI App
 app = FastAPI()
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow requests from anywhere (for testing)
@@ -57,14 +54,18 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 
 
 def extract_date_and_sheet(file_path):
-    match = re.search(r"(\d{4}-\d{2}-\d{2})", file_path)
-    if not match:
-        logging.error(f"No valid date found in '{file_path}'")
-        return None, None
-    date_str = match.group(1)
-    formatted_date = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m/%Y")
-    target_sheet = f"All_{formatted_date.replace('/', '-')}"
-    return formatted_date, target_sheet
+    try:
+        match = re.search(r"(\d{4}-\d{2}-\d{2})", file_path)
+        if not match:
+            raise ValueError(f"No valid date found in '{file_path}'")
+        date_str = match.group(1)
+        formatted_date = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m/%Y")
+        target_sheet = f"All_{formatted_date.replace('/', '-')}"
+
+        return formatted_date, target_sheet
+    except Exception as e:
+        logging.error(f"Error extracting date and sheet: {e}")
+        raise HTTPException(status_code=400, detail="Invalid file name format")
 
 
 def load_and_filter_data(file_path, target_sheet):
@@ -72,19 +73,20 @@ def load_and_filter_data(file_path, target_sheet):
         engine = "xlrd" if file_path.endswith(".xls") else "openpyxl"
         excel_data = pd.ExcelFile(file_path, engine=engine)
         if target_sheet not in excel_data.sheet_names:
-            logging.error(f"Sheet '{target_sheet}' not found in '{file_path}'")
-            return None
+            raise ValueError(f"Sheet '{target_sheet}' not found in '{file_path}'")
         data = pd.read_excel(file_path, sheet_name=target_sheet, engine=engine)
         for col in CONFIG["columns_to_extract"]:
             if col not in data.columns:
-                logging.error(f"Column '{col}' not found in the data from '{file_path}'")
-                return None
-        # Filter and extract data
+                raise ValueError(f"Column '{col}' not found in the data from '{file_path}'")
         filtered_data = data[data["TAG"].str.contains("|".join(CONFIG["filter_keywords"]), na=False)]
         return filtered_data[CONFIG["columns_to_extract"]]
+    except ValueError as ve:
+        logging.error(f"Data extraction error: {ve}")
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         logging.error(f"Error loading data from '{file_path}': {e}")
-        return None
+        raise HTTPException(status_code=500, detail="Data extraction failed")
+
 
 def convert_xls_to_xlsx(xls_path):
     try:
@@ -95,7 +97,7 @@ def convert_xls_to_xlsx(xls_path):
         return xlsx_path
     except Exception as e:
         logging.error(f"Failed to convert {xls_path} to xlsx: {e}")
-        return None
+        raise HTTPException(status_code=500, detail="Failed to convert .xls tracker file")
 
 
 def update_tracker(tracker_path, extracted_dfs, is_latest): 
@@ -118,9 +120,8 @@ def update_tracker(tracker_path, extracted_dfs, is_latest):
             day = parsed_date.day
 
             if month not in CONFIG["month_column_ranges"]:
-                logging.error(f"Invalid month: {month}.")
-                return None
-
+                raise ValueError(f"Invalid month: {month}.")
+            
             start_col_letter, end_col_letter = CONFIG["month_column_ranges"][month]
             start_col = column_index_from_string(start_col_letter)
             end_col = column_index_from_string(end_col_letter)
@@ -188,30 +189,76 @@ def update_tracker(tracker_path, extracted_dfs, is_latest):
         temp_output_path = os.path.join(TEMP_DIR, "updated_tracker.xlsx")
         workbook.save(temp_output_path)
         return temp_output_path
+    except ValueError as ve:
+        logging.error(f"Tracker update error: {ve}")
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         logging.error(f"Error updating tracker: {e}")
-        return None
-
+        raise HTTPException(status_code=500, detail="Tracker update failed")
 
 
 @app.post("/process_backlog")
 async def process_backlog(input_files: List[UploadFile] = File(...), tracker_file: UploadFile = File(...)):
-    extracted_dfs = []
+    try:
+        extracted_dfs = []
 
-    # Save tracker file
-    tracker_path = os.path.join(TEMP_DIR, tracker_file.filename)
-    with open(tracker_path, "wb") as buffer:
-        shutil.copyfileobj(tracker_file.file, buffer)
+        # Save tracker file
+        tracker_path = os.path.join(TEMP_DIR, tracker_file.filename)
+        with open(tracker_path, "wb") as buffer:
+            shutil.copyfileobj(tracker_file.file, buffer)
 
-    # Convert tracker if it’s .xls
-    if tracker_path.endswith(".xls"):
-        converted_path = convert_xls_to_xlsx(tracker_path)
-        if not converted_path:
-            raise HTTPException(status_code=500, detail="Failed to convert .xls tracker file.")
-        tracker_path = converted_path
+        # Convert tracker if it’s .xls
+        if tracker_path.endswith(".xls"):
+            converted_path = convert_xls_to_xlsx(tracker_path)
+            if not converted_path:
+                raise HTTPException(status_code=500, detail="Failed to convert .xls tracker file.")
+            tracker_path = converted_path
 
-    # Loop through and handle each input file
-    for input_file in input_files:
+        # Loop through and handle each input file
+        for input_file in input_files:
+            input_path = os.path.join(TEMP_DIR, input_file.filename)
+            with open(input_path, "wb") as buffer:
+                shutil.copyfileobj(input_file.file, buffer)
+
+            formatted_date, target_sheet = extract_date_and_sheet(input_path)
+            if not formatted_date:
+                raise HTTPException(status_code=400, detail=f"Invalid file name format: {input_file.filename}")
+
+            extracted_df = load_and_filter_data(input_path, target_sheet)
+            if extracted_df is None:
+                raise HTTPException(status_code=500, detail=f"Data extraction failed for {input_file.filename}")
+
+            extracted_dfs.append((extracted_df, formatted_date))
+
+        # Update tracker
+        updated_tracker_path = update_tracker(tracker_path, extracted_dfs, is_latest=False)
+        if not updated_tracker_path:
+            raise HTTPException(status_code=500, detail="Tracker update failed.")
+
+        return FileResponse(updated_tracker_path, filename="updated_backlog_tracker.xlsx")
+    except Exception as e:
+        logging.error(f"Error processing backlog: {e}")
+        raise HTTPException(status_code=500, detail="Error processing backlog")
+
+
+@app.post("/process_latest")
+async def process_latest(input_file: UploadFile = File(...), tracker_file: UploadFile = File(...)):
+    try:
+        extracted_dfs = []
+
+        # Save tracker file
+        tracker_path = os.path.join(TEMP_DIR, tracker_file.filename)
+        with open(tracker_path, "wb") as buffer:
+            shutil.copyfileobj(tracker_file.file, buffer)
+
+        # Convert tracker if it’s .xls
+        if tracker_path.endswith(".xls"):
+            converted_path = convert_xls_to_xlsx(tracker_path)
+            if not converted_path:
+                raise HTTPException(status_code=500, detail="Failed to convert .xls tracker file.")
+            tracker_path = converted_path
+
+        # Save input file
         input_path = os.path.join(TEMP_DIR, input_file.filename)
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(input_file.file, buffer)
@@ -226,46 +273,11 @@ async def process_backlog(input_files: List[UploadFile] = File(...), tracker_fil
 
         extracted_dfs.append((extracted_df, formatted_date))
 
-    # Update tracker
-    updated_tracker_path = update_tracker(tracker_path, extracted_dfs, is_latest=False)
-    if not updated_tracker_path:
-        raise HTTPException(status_code=500, detail="Tracker update failed.")
+        updated_tracker_path = update_tracker(tracker_path, extracted_dfs, is_latest=True)
+        if not updated_tracker_path:
+            raise HTTPException(status_code=500, detail="Tracker update failed.")
 
-    return FileResponse(updated_tracker_path, filename="updated_backlog_tracker.xlsx")
-
-@app.post("/process_latest")
-async def process_latest(input_file: UploadFile = File(...), tracker_file: UploadFile = File(...)):
-    extracted_dfs = []
-
-    # Save tracker file
-    tracker_path = os.path.join(TEMP_DIR, tracker_file.filename)
-    with open(tracker_path, "wb") as buffer:
-        shutil.copyfileobj(tracker_file.file, buffer)
-
-    # Convert tracker if it’s .xls
-    if tracker_path.endswith(".xls"):
-        converted_path = convert_xls_to_xlsx(tracker_path)
-        if not converted_path:
-            raise HTTPException(status_code=500, detail="Failed to convert .xls tracker file.")
-        tracker_path = converted_path
-
-    # Save input file
-    input_path = os.path.join(TEMP_DIR, input_file.filename)
-    with open(input_path, "wb") as buffer:
-        shutil.copyfileobj(input_file.file, buffer)
-
-    formatted_date, target_sheet = extract_date_and_sheet(input_path)
-    if not formatted_date:
-        raise HTTPException(status_code=400, detail=f"Invalid file name format: {input_file.filename}")
-
-    extracted_df = load_and_filter_data(input_path, target_sheet)
-    if extracted_df is None:
-        raise HTTPException(status_code=500, detail=f"Data extraction failed for {input_file.filename}")
-
-    extracted_dfs.append((extracted_df, formatted_date))
-
-    updated_tracker_path = update_tracker(tracker_path, extracted_dfs, is_latest=True)
-    if not updated_tracker_path:
-        raise HTTPException(status_code=500, detail="Tracker update failed.")
-
-    return FileResponse(updated_tracker_path, filename="updated_latest_tracker.xlsx")
+        return FileResponse(updated_tracker_path, filename="updated_latest_tracker.xlsx")
+    except Exception as e:
+        logging.error(f"Error processing latest: {e}")
+        raise HTTPException(status_code=500, detail="Error processing latest tracker")
