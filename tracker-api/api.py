@@ -86,6 +86,17 @@ def load_and_filter_data(file_path, target_sheet):
         logging.error(f"Error loading data from '{file_path}': {e}")
         return None
 
+def convert_xls_to_xlsx(xls_path):
+    try:
+        df = pd.read_excel(xls_path, engine="xlrd")
+        xlsx_path = xls_path + "x"  # e.g., "tracker.xls" → "tracker.xlsx"
+        df.to_excel(xlsx_path, index=False, engine="openpyxl")
+        logging.info(f"Converted '{xls_path}' to '{xlsx_path}'")
+        return xlsx_path
+    except Exception as e:
+        logging.error(f"Failed to convert {xls_path} to xlsx: {e}")
+        return None
+
 
 def update_tracker(tracker_path, extracted_dfs, is_latest): 
     try:
@@ -185,13 +196,21 @@ def update_tracker(tracker_path, extracted_dfs, is_latest):
 
 @app.post("/process_backlog")
 async def process_backlog(input_files: List[UploadFile] = File(...), tracker_file: UploadFile = File(...)):
-
     extracted_dfs = []
 
+    # Save tracker file
     tracker_path = os.path.join(TEMP_DIR, tracker_file.filename)
     with open(tracker_path, "wb") as buffer:
         shutil.copyfileobj(tracker_file.file, buffer)
 
+    # Convert tracker if it’s .xls
+    if tracker_path.endswith(".xls"):
+        converted_path = convert_xls_to_xlsx(tracker_path)
+        if not converted_path:
+            raise HTTPException(status_code=500, detail="Failed to convert .xls tracker file.")
+        tracker_path = converted_path
+
+    # Loop through and handle each input file
     for input_file in input_files:
         input_path = os.path.join(TEMP_DIR, input_file.filename)
         with open(input_path, "wb") as buffer:
@@ -207,6 +226,7 @@ async def process_backlog(input_files: List[UploadFile] = File(...), tracker_fil
 
         extracted_dfs.append((extracted_df, formatted_date))
 
+    # Update tracker
     updated_tracker_path = update_tracker(tracker_path, extracted_dfs, is_latest=False)
     if not updated_tracker_path:
         raise HTTPException(status_code=500, detail="Tracker update failed.")
@@ -217,10 +237,19 @@ async def process_backlog(input_files: List[UploadFile] = File(...), tracker_fil
 async def process_latest(input_file: UploadFile = File(...), tracker_file: UploadFile = File(...)):
     extracted_dfs = []
 
+    # Save tracker file
     tracker_path = os.path.join(TEMP_DIR, tracker_file.filename)
     with open(tracker_path, "wb") as buffer:
         shutil.copyfileobj(tracker_file.file, buffer)
 
+    # Convert tracker if it’s .xls
+    if tracker_path.endswith(".xls"):
+        converted_path = convert_xls_to_xlsx(tracker_path)
+        if not converted_path:
+            raise HTTPException(status_code=500, detail="Failed to convert .xls tracker file.")
+        tracker_path = converted_path
+
+    # Save input file
     input_path = os.path.join(TEMP_DIR, input_file.filename)
     with open(input_path, "wb") as buffer:
         shutil.copyfileobj(input_file.file, buffer)
